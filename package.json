@@ -3,13 +3,20 @@
   "version": "1.0.0",
   "description": "A Socket.IO chat application with TypeScript, Express, and MongoDB",
   "main": "dist/server.js",
-  "scripts": {
-    "dev": "ts-node-dev --respawn src/server.ts",
-    "start": "node dist/server.js",
-    "build": "tsc",
-    "clean": "rimraf dist"
-  },
-  "keywords": ["socket.io", "chat", "typescript", "express", "mongodb"],
+"scripts": {
+  "dev": "nodemon",
+  "build": "tsc",
+  "start": "node dist/server.js",
+  "clean": "rimraf dist"
+},
+  
+  "keywords": [
+    "socket.io",
+    "chat",
+    "typescript",
+    "express",
+    "mongodb"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -17,6 +24,7 @@
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
     "mongoose": "^8.16.2",
+    "nodemon": "^3.1.10",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {

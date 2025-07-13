@@ -1,32 +1,27 @@
-import mongoose, { Document, Model } from 'mongoose';
-import { IUser } from './User';
-import { IGroup } from './Group';
-import { IMessage } from './Message';
+import mongoose, { Document, Schema, Model, Types } from 'mongoose';
+import { IUser } from './User'; // ধরে নিচ্ছি আপনার User মডেলের জন্য IUser ইন্টারফেস আছে
 
+// সাব-ডকুমেন্টের জন্য ইন্টারফেস
 export interface IUnreadCount {
-  userId: mongoose.Types.ObjectId | IUser;
+  userId: Types.ObjectId | IUser;
   count: number;
 }
 
-export interface IArchiveStatus {
-  userId: mongoose.Types.ObjectId | IUser;
-  archived: boolean;
-}
-
+// মূল কনভার্সেশন ডকুমেন্টের জন্য ইন্টারফেস
 export interface IConversation extends Document {
-  participants: mongoose.Types.ObjectId[] | IUser[];
+  participants: (Types.ObjectId | IUser)[];
   type: 'direct' | 'group';
-  groupId: mongoose.Types.ObjectId | IGroup | null;
-  lastMessage: mongoose.Types.ObjectId | IMessage | null;
-  lastActivity: Date;
+  groupName: string | null;
+  groupAvatar: string | null;
+  lastMessage: string | null;
   unreadCount: IUnreadCount[];
-  isArchived: IArchiveStatus[];
   createdAt: Date;
+  updatedAt: Date;
 }
 
-const conversationSchema = new mongoose.Schema({
+const conversationSchema = new Schema<IConversation>({
   participants: [{
-    type: mongoose.Schema.Types.ObjectId,
+    type: Schema.Types.ObjectId,
     ref: 'User',
     required: true
   }],
@@ -35,48 +30,29 @@ const conversationSchema = new mongoose.Schema({
     enum: ['direct', 'group'],
     required: true
   },
-  groupId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Group',
+  groupName: {
+    type: String,
+    trim: true,
+    default: null
+  },
+  groupAvatar: {
+    type: String,
     default: null
   },
   lastMessage: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Message',
+    type: String,
     default: null
   },
-  lastActivity: {
-    type: Date,
-    default: Date.now
-  },
   unreadCount: [{
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
-    },
-    count: {
-      type: Number,
-      default: 0
-    }
+    _id: false, // অ্যারের এলিমেন্টের জন্য _id তৈরি বন্ধ করতে
+    userId: { type: Schema.Types.ObjectId, ref: 'User' },
+    count: { type: Number, default: 0 }
   }],
-  isArchived: [{
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
-    },
-    archived: {
-      type: Boolean,
-      default: false
-    }
-  }],
-  createdAt: {
-    type: Date,
-    default: Date.now
-  }
 }, {
-  timestamps: true
+  // timestamps: true যোগ করলে createdAt এবং updatedAt ফিল্ড স্বয়ংক্রিয়ভাবে তৈরি ও আপডেট হবে
+  timestamps: true 
 });
 
-const Conversation = mongoose.model<IConversation>('Conversation', conversationSchema);
+const Conversation: Model<IConversation> = mongoose.model<IConversation>('Conversation', conversationSchema);
 
 export default Conversation;
