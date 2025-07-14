@@ -3,8 +3,12 @@ services:
     name: socket-io-server-for-nextjs-chat
     env: node
     plan: free
-    buildCommand: npm install --legacy-peer-deps && npm run build
+    buildCommand: npm ci && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
-        value: development
+        value: production
+      - key: PORT
+        value: 5000
+      - key: MONGO_URI
+        sync: false

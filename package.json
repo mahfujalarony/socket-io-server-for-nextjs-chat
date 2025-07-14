@@ -5,9 +5,10 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "nodemon",
-    "build": "tsc",
+    "build": "npm run clean && tsc",
     "start": "node dist/server.js",
-    "clean": "rimraf dist"
+    "clean": "rimraf dist",
+    "postbuild": "echo Build completed successfully"
   },
   "keywords": [
     "socket.io",
@@ -19,18 +20,20 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@types/cors": "^2.8.19",
     "cors": "^2.8.5",
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
     "mongoose": "^8.16.3",
-    "nodemon": "^3.1.10",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/node": "^24.0.13",
     "@types/socket.io": "^3.0.2",
+    "nodemon": "^3.1.10",
+    "rimraf": "^6.0.1",
+    "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.8.3"
   }
