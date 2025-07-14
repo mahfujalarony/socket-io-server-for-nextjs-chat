@@ -30,7 +30,7 @@ export {
 // Export types
 export type { IUser } from './User';
 export type { IGroup, IGroupSettings } from './Group';
-export type { IConversation, IUnreadCount, IArchiveStatus } from './Conversation';
+export type { IConversation, IUnreadCount } from './Conversation';
 export type { IMessage, IAttachment, IReaction, MessageType } from './Message';
 export type { IGroupMember, IPermissions } from './GroupMember';
 export type { IMessageStatus } from './MessageStatus';
