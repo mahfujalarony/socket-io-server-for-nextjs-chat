@@ -83,11 +83,33 @@ const chatSocket = (socket: Socket, ioInstance: Server) => {
     });
   });
 
+  // User একটি conversation এ join করবে
+  socket.on("join_conversation", (conversationId: string) => {
+    socket.join(conversationId);
+    console.log(`✅ User joined conversation: ${conversationId}`);
+  });
+
+  // User join with ID
+  socket.on("join_with_id", (userId: string) => {
+    socket.join(userId);
+    console.log(`✅ User ${userId} joined their personal room`);
+  });
+
   // Typing indicator
-  socket.on("typing", (data: any) => {
-    socket.to(data.recipientId).emit("user_typing", {
+  socket.on("typing", (data: { conversationId: string, userId: string, username: string }) => {
+    console.log("👨‍💻 User typing:", data);
+    console.log("🎯 Emitting to conversation room:", data.conversationId);
+    socket.to(data.conversationId).emit("user_typing", {
       userId: data.userId,
-      isTyping: data.isTyping
+      username: data.username
+    });
+  });
+
+  socket.on("stop_typing", (data: { conversationId: string, userId: string }) => {
+    console.log("⏹️ User stopped typing:", data);
+    console.log("🎯 Emitting to conversation room:", data.conversationId);
+    socket.to(data.conversationId).emit("user_stopped_typing", {
+      userId: data.userId
     });
   });
 

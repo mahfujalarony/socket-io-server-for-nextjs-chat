@@ -14,6 +14,6 @@ router.post("/send", sendMessage);
 router.get("/:conversationId", getMessages);
 
 // Message delete করার রাউট
-router.delete("/:messageId", deleteMessage);
+router.delete("/delete/:messageId", deleteMessage);
 
 export default router;

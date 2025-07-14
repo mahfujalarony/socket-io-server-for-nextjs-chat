@@ -32,8 +32,10 @@ export const getUser = async (req: Request, res: Response) => {
 
 // সব ইউজার (কন্টাক্ট লিস্ট)
 export const getAllUsers = async (req: Request, res: Response) => {
+    const firebaseUid = req.params.firebaseUid;
     try {
-        const users = await User.find()
+        const users = await User.find({ firebaseUid: { $ne: firebaseUid } }) // Exclude current user
+            .sort({ username: 1 }) 
             .select('username email isOnline avatar firebaseUid')
             .lean();
 

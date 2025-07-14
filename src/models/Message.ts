@@ -28,6 +28,7 @@ export interface IMessage extends Document {
   replyTo: mongoose.Types.ObjectId | IMessage | null;
   mentions: (mongoose.Types.ObjectId | IUser)[];
   reactions: IReaction[];
+  fileUrl: string | null;
   isEdited: boolean;
   editedAt: Date | null;
   isDeleted: boolean;
@@ -67,6 +68,11 @@ const messageSchema = new mongoose.Schema({
     fileSize: Number,
     fileUrl: String
   }],
+
+  fileUrl: {
+    type: String,
+    default: null
+  },
   replyTo: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Message',

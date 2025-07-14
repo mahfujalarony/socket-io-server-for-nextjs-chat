@@ -6,7 +6,8 @@ import { getIO } from '../sockets/chat.socket';
 
 // Message save করার জন্য socket এ ব্যবহার হবে
 export const saveMessage = async (data: any) => {
-  const { conversationId, senderId, content, messageType = 'text' } = data;
+  const { conversationId, senderId, content, messageType = 'text', fileUrl } = data;
+  console.log("Saving message:", { conversationId, senderId, content, messageType, fileUrl });
 
   try {
     const message = await Message.create({
@@ -14,8 +15,11 @@ export const saveMessage = async (data: any) => {
       sender: senderId,
       content,
       messageType,
+      fileUrl,
       timestamp: new Date(),
     });
+
+
 
     // Conversation এর lastMessage update করা
     await Conversation.findByIdAndUpdate(conversationId, {
@@ -25,7 +29,7 @@ export const saveMessage = async (data: any) => {
 
     // Message populate করা
     const populatedMessage = await Message.findById(message._id)
-      .populate<{ sender: IUser }>('sender', 'username avatar firebaseUid _id');
+      .populate<{ sender: IUser }>('sender', 'username avatar firebaseUid fileUrl _id');
 
     return populatedMessage;
   } catch (error) {
@@ -37,7 +41,7 @@ export const saveMessage = async (data: any) => {
 // HTTP route এর জন্য message send করা
 export const sendMessage = async (req: Request, res: Response) => {
   try {
-    const { conversationId, senderId, content, messageType = 'text' } = req.body;
+    const { conversationId, senderId, content, messageType = 'text', fileUrl } = req.body;
 
     if (!conversationId || !senderId || !content) {
       return res.status(400).json({ 
@@ -47,7 +51,7 @@ export const sendMessage = async (req: Request, res: Response) => {
     }
 
     // Message save করা
-    const message = await saveMessage({ conversationId, senderId, content, messageType });
+    const message = await saveMessage({ conversationId, senderId, content, messageType, fileUrl });
 
     // Real-time এ participants দের পাঠানো
     const conversation = await Conversation.findById(conversationId)
@@ -55,9 +59,19 @@ export const sendMessage = async (req: Request, res: Response) => {
 
     if (conversation) {
       const io = getIO();
+      console.log("📡 Emitting new message to participants");
+      
+      // Conversation room এ emit করি
+      io.to(conversationId).emit("new_message", {
+        message,
+        conversationId
+      });
+      
+      // Individual user rooms এও emit করি (backup)
       conversation.participants.forEach((participant: any) => {
         if (participant._id.toString() !== senderId) {
-          io.to(participant._id.toString()).emit("new-message", {
+          console.log(`📤 Sending to user: ${participant._id.toString()}`);
+          io.to(participant._id.toString()).emit("new_message", {
             message,
             conversationId
           });
@@ -148,10 +162,18 @@ export const deleteMessage = async (req: Request, res: Response) => {
 
     if (conversation) {
       const io = getIO();
+      
+      // Conversation room এ emit করি
+      io.to(message.conversationId.toString()).emit("message_deleted", {
+        messageId,
+        conversationId: message.conversationId.toString()
+      });
+      
+      // Individual user rooms এও emit করি (backup)
       conversation.participants.forEach((participant: any) => {
-        io.to(participant._id.toString()).emit("message-deleted", {
+        io.to(participant._id.toString()).emit("message_deleted", {
           messageId,
-          conversationId: message.conversationId
+          conversationId: message.conversationId.toString()
         });
       });
     }

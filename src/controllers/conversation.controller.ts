@@ -3,7 +3,7 @@ import Conversation, { IConversation } from "../models/Conversation";
 import User, { IUser } from "../models/User";
 import { getIO } from "../sockets/chat.socket";
 
-// রিকোয়েস্ট বডির জন্য টাইপ
+// Request body type
 interface CreateConversationBody {
   participants: string[];
   type: 'direct' | 'group';
@@ -11,7 +11,7 @@ interface CreateConversationBody {
   groupAvatar?: string;
 }
 
-// রিকোয়েস্ট প্যারামিটারের জন্য টাইপ
+// Request parameters type
 interface FirebaseUidParams {
   firebaseUid: string;
 }
@@ -21,34 +21,34 @@ interface DeleteConvParams {
   chatId: string;
 }
 
-
 export const createConversation = async (req: Request<{}, {}, CreateConversationBody>, res: Response) => {
   try {
     const { participants, type, groupName, groupAvatar } = req.body;
 
     if (!participants || !Array.isArray(participants) || participants.length < 2) {
-      return res.status(400).json({ message: "কমপক্ষে ২ জন অংশগ্রহণকারী প্রয়োজন।" });
+      return res.status(400).json({ message: "At least 2 participants are required." });
     }
     
+    // Remove duplicate participants
     const uniqueParticipants = [...new Set(participants.map(p => p.toString()))];
 
     if (type === "direct") {
       if (uniqueParticipants.length !== 2) {
-        return res.status(400).json({ message: "ডাইরেক্ট চ্যাটে ঠিক ২ জন অংশগ্রহণকারী থাকতে হবে।" });
+        return res.status(400).json({ message: "Direct chat must have exactly 2 participants." });
       }
       
+      // Check for existing conversation with these participants
       const sortedParticipants = [...uniqueParticipants].sort();
-
       const existing: IConversation | null = await Conversation.findOne({
         type: "direct",
         participants: { $all: sortedParticipants, $size: 2 }
       });
 
       if (existing) {
-        return res.status(200).json({ message: "এই কনভার্সেশনটি আগে থেকেই আছে।", data: existing });
+        return res.status(200).json({ message: "Conversation already exists.", data: existing });
       }
     } else if (type === "group" && (!groupName || groupName.trim() === "")) {
-      return res.status(400).json({ message: "গ্রুপ চ্যাটের জন্য গ্রুপের নাম আবশ্যক।" });
+      return res.status(400).json({ message: "Group name is required for group chats." });
     }
 
     const newConversation = new Conversation({
@@ -60,6 +60,7 @@ export const createConversation = async (req: Request<{}, {}, CreateConversation
 
     await newConversation.save();
 
+    // Notify all participants via socket
     const io = getIO();
     participants.forEach((userId) => {
       io.to(userId.toString()).emit("new-conversation", newConversation);
@@ -70,13 +71,13 @@ export const createConversation = async (req: Request<{}, {}, CreateConversation
 
     return res.status(201).json({
       success: true,
-      message: "কনভার্সেশন সফলভাবে তৈরি হয়েছে।",
+      message: "Conversation created successfully.",
       data: populatedConversation,
     });
 
   } catch (err) {
     console.error("Conversation create error:", err);
-    res.status(500).json({ success: false, message: "সার্ভার এরর। আবার চেষ্টা করুন।" });
+    res.status(500).json({ success: false, message: "Server error. Please try again." });
   }
 };
 
@@ -85,7 +86,7 @@ export const getConvList = async (req: Request<FirebaseUidParams>, res: Response
     const { firebaseUid } = req.params;
     const user: IUser | null = await User.findOne({ firebaseUid });
     if (!user) {
-      return res.status(404).json({ success: false, message: "ইউজার খুঁজে পাওয়া যায়নি।" });
+      return res.status(404).json({ success: false, message: "User not found." });
     }
 
     const conversations = await Conversation.find({ participants: user._id })
@@ -95,8 +96,8 @@ export const getConvList = async (req: Request<FirebaseUidParams>, res: Response
 
     res.status(200).json({ success: true, data: conversations });
   } catch (err) {
-    console.error("Get Conv List error:", err);
-    res.status(500).json({ success: false, message: "সার্ভার এরর।" });
+    console.error("Get conversation list error:", err);
+    res.status(500).json({ success: false, message: "Server error." });
   }
 };
 
@@ -105,23 +106,25 @@ export const deleteConversation = async (req: Request<DeleteConvParams>, res: Re
     const { firebaseUid, chatId } = req.params;
     const user: IUser | null = await User.findOne({ firebaseUid });
     if (!user) {
-      return res.status(404).json({ success: false, message: "ইউজার খুঁজে পাওয়া যায়নি।" });
+      return res.status(404).json({ success: false, message: "User not found." });
     }
 
-    // Delete করার আগে conversation data নেওয়া যাতে participants দের জানানো যায়
+    // Get conversation data before deletion to notify participants
     const conversation: IConversation | null = await Conversation.findOne({
       _id: chatId,
       participants: user._id,
     }).populate<{ participants: IUser[] }>('participants', '_id');
 
     if (!conversation) {
-      return res.status(404).json({ success: false, message: "কনভার্সেশন খুঁজে পাওয়া যায়নি বা আপনার অনুমতি নেই।" });
+      return res.status(404).json({ 
+        success: false, 
+        message: "Conversation not found or you don't have permission." 
+      });
     }
 
-    // Delete the conversation
     await Conversation.findByIdAndDelete(chatId);
 
-    // Socket event emit করে অন্য participants দের জানানো
+    // Notify other participants via socket
     const io = getIO();
     const participantIds = conversation.participants.map((p: any) => p._id.toString());
     
@@ -134,10 +137,10 @@ export const deleteConversation = async (req: Request<DeleteConvParams>, res: Re
       }
     });
 
-    res.status(200).json({ success: true, message: "কনভার্সেশন সফলভাবে মুছে ফেলা হয়েছে।" });
+    res.status(200).json({ success: true, message: "Conversation deleted successfully." });
   } catch (err) {
     console.error("Delete conversation error:", err);
-    res.status(500).json({ success: false, message: "সার্ভার এরর।" });
+    res.status(500).json({ success: false, message: "Server error." });
   }
 };
 
@@ -149,12 +152,12 @@ export const getConversationById = async (req: Request, res: Response) => {
       .populate<{ participants: IUser[] }>('participants', 'username avatar firebaseUid isOnline _id');
 
     if (!conversation) {
-      return res.status(404).json({ success: false, message: "কনভার্সেশন খুঁজে পাওয়া যায়নি।" });
+      return res.status(404).json({ success: false, message: "Conversation not found." });
     }
 
     res.status(200).json({ success: true, data: conversation });
   } catch (err) {
     console.error("Get conversation by ID error:", err);
-    res.status(500).json({ success: false, message: "সার্ভার এরর।" });
+    res.status(500).json({ success: false, message: "Server error." });
   }
 };
