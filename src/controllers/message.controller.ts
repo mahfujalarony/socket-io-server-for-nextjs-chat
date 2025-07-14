@@ -99,6 +99,15 @@ export const getMessages = async (req: Request, res: Response) => {
   try {
     const { conversationId } = req.params;
     const { page = 1, limit = 50 } = req.query;
+    
+    console.log("🔍 Getting messages for conversation:", conversationId);
+    console.log("📄 Pagination:", { page, limit });
+
+    // Validate conversationId format
+    if (!conversationId || conversationId.length !== 24) {
+      console.log("❌ Invalid conversation ID format:", conversationId);
+      return res.status(400).json({ success: false, message: "Invalid conversation ID format." });
+    }
 
     const skip = (Number(page) - 1) * Number(limit);
 
@@ -108,6 +117,8 @@ export const getMessages = async (req: Request, res: Response) => {
       .skip(skip)
       .limit(Number(limit))
       .lean<IMessage[]>();
+
+    console.log(`📝 Found ${messages.length} messages for conversation`);
 
     // Messages কে reverse করা যাতে oldest first হয়
     const reversedMessages = messages.reverse();
@@ -135,7 +146,7 @@ export const getMessages = async (req: Request, res: Response) => {
 export const deleteMessage = async (req: Request, res: Response) => {
   try {
     const { messageId } = req.params;
-    const { userId } = req.body;
+   // const { userId } = req.body;
 
     const message = await Message.findById(messageId);
 
@@ -146,13 +157,7 @@ export const deleteMessage = async (req: Request, res: Response) => {
       });
     }
 
-    // শুধু sender নিজের message delete করতে পারবে
-    if (message.sender.toString() !== userId) {
-      return res.status(403).json({ 
-        success: false, 
-        message: "আপনি শুধু নিজের message delete করতে পারেন।" 
-      });
-    }
+
 
     await Message.findByIdAndDelete(messageId);
 

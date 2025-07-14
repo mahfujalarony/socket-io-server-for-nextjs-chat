@@ -147,17 +147,28 @@ export const deleteConversation = async (req: Request<DeleteConvParams>, res: Re
 export const getConversationById = async (req: Request, res: Response) => {
   try {
     const { conversationId } = req.params;
+    console.log("🔍 Getting conversation by ID:", conversationId);
+
+    // Validate conversationId format
+    if (!conversationId || conversationId.length !== 24) {
+      console.log("❌ Invalid conversation ID format:", conversationId);
+      return res.status(400).json({ success: false, message: "Invalid conversation ID format." });
+    }
 
     const conversation = await Conversation.findById(conversationId)
       .populate<{ participants: IUser[] }>('participants', 'username avatar firebaseUid isOnline _id');
 
+    console.log("🔍 Database query result:", conversation ? "Found" : "Not found");
+
     if (!conversation) {
+      console.log("❌ Conversation not found in database");
       return res.status(404).json({ success: false, message: "Conversation not found." });
     }
 
+    console.log("✅ Conversation found, returning data");
     res.status(200).json({ success: true, data: conversation });
   } catch (err) {
-    console.error("Get conversation by ID error:", err);
+    console.error("❌ Get conversation by ID error:", err);
     res.status(500).json({ success: false, message: "Server error." });
   }
 };

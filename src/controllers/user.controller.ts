@@ -58,22 +58,26 @@ export const getAllUsers = async (req: Request, res: Response) => {
 export const getMongoId = async (req: Request, res: Response) => {
     try {
         const { firebaseUid } = req.params;
+        console.log("🔍 Getting MongoDB ID for firebaseUid:", firebaseUid);
 
         const user = await User.findOne({ firebaseUid }).select('_id').lean();
+        console.log("🔍 Database query result:", user ? "Found" : "Not found");
 
         if (!user) {
+            console.log("❌ User not found in database");
             return res.status(404).json({ 
                 success: false,
                 message: 'User not found' 
             });
         }
 
+        console.log("✅ User found, returning MongoDB ID");
         res.status(200).json({
             success: true,
             data: { mongoId: user._id }
         });
     } catch (error) {
-        console.error('Error in getMongoId:', error);
+        console.error('❌ Error in getMongoId:', error);
         res.status(500).json({ 
             success: false, 
             message: 'Server error', 

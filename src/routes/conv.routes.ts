@@ -15,7 +15,7 @@ router.post("/createConv", createConversation);
 router.get("/getConvList/:firebaseUid", getConvList);
 
 // নির্দিষ্ট কনভার্সেশন এর ডিটেইলস পাওয়ার রাউট
-router.get("/getConv/:conversationId", getConversationById);
+router.get("/getConversationById/:conversationId", getConversationById);
 
 // নির্দিষ্ট কনভার্সেশন ডিলেট করার রাউট
 router.delete("/deleteConv/:firebaseUid/:chatId", deleteConversation);
